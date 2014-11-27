@@ -59,7 +59,7 @@ public class Juego_1 extends JFrame implements ActionListener {
         this.setFocusable(true);
           
         // Fijamos tamaño de la ventana.       
-        setSize (600, 900);
+        setSize (375, 398);
         // Hacemos la ventana visible.
         setVisible(true);    
                 
@@ -102,7 +102,7 @@ public class Juego_1 extends JFrame implements ActionListener {
 		
 		if (currentDirection == Rigth) {
 			nextCol = aLink.getCoordinate().getColumn() + 1;
-			if (nextCol < 9) {
+			if (nextCol < 12) {
 				aLink.incColumn();
 			}
 			else{
@@ -111,7 +111,7 @@ public class Juego_1 extends JFrame implements ActionListener {
 		}
 		if (currentDirection == Down) {
 			nextRow = aLink.getCoordinate().getRow() + 1;
-			if (nextRow < 9) {
+			if (nextRow < 12) {
 				aLink.incRow();
 			}
 			else{
@@ -147,7 +147,7 @@ public class Juego_1 extends JFrame implements ActionListener {
      */	
 	class Tablero_1 extends JPanel {
 				
-	    int lado = 60;
+	    int lado = 30;
 		
         public void paintComponent(Graphics g){
        	    super.paintComponent(g);
