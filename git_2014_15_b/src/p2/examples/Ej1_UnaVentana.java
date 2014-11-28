@@ -18,7 +18,7 @@ public class Ej1_UnaVentana extends JFrame{
        super("Una Ventana");
     
        // Fijamos tamaño de la ventana.       
-       setSize (400,240);
+       setSize (375,398);
        
        // Hacemos la ventana visible.
        setVisible(true);  

@@ -49,10 +49,10 @@ public class GamePanel extends JPanel  {
     	setSize(new Dimension(cols*edge, rows*edge));
     	
     	vObstacle = new VSquare("obstacle");
-    	vGrape = new VImage("food", "resources/apple2.jpg");
+    	vGrape = new VImage("food", "resources/cupcake.png");
     	vLink = new VCircle();  
     	vBug  = new VImage("bug", "resources/bug.jpg");  
-    	vHead  = new VImage("head", "resources/head.jpg");  
+    	vHead  = new VImage("head", "resources/snake.png");  
     	
     	tViews.put(IGameConstants.Bug, vBug);
     	tViews.put(IGameConstants.Fruit, vGrape);

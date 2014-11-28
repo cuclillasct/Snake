@@ -157,7 +157,10 @@ public class Snake extends AGameObject implements IGameCharacter {
 	}
 
 	public SnakeLink removeLink() {
-		return links.remove(links.size()-1);
+		if(links.size() > 1){
+			return links.remove(links.size()-1);
+		}
+		return null;
 	}
 
 	public int getNumberOfLinks() {

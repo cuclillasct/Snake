@@ -6,16 +6,21 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Enumeration;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 import javax.swing.JButton;
+import javax.swing.JDialog;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JMenu;
 import javax.swing.JMenuBar;
 import javax.swing.JMenuItem;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.Timer;
 
@@ -23,12 +28,17 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import p2.basic.Coordinate;
+import p2.basic.IAutonomousObject;
 import p2.basic.IGame;
 import p2.basic.IGameCharacter;
 import p2.basic.IGameConstants;
 import p2.basic.IGameObject;
+import p2.basic.IView;
+import p2.basic.NoMobileObjectException;
 import p2.basic.ParamException;
+import p2.basic.tooMuchShiftException;
 import p2.views_impl.GamePanel;
+import p2.views_impl.VImage;
 
 
 public class Game_0 extends JFrame implements IGame, KeyListener, ActionListener {
@@ -40,7 +50,7 @@ public class Game_0 extends JFrame implements IGame, KeyListener, ActionListener
 	// Board size .................................................
 	int nRows = 20;
 	int nCols = 20;
-	int edge = 40;
+	int edge = 30;
 	
 	// Timer ......................................................
 	int ticks;
@@ -50,7 +60,7 @@ public class Game_0 extends JFrame implements IGame, KeyListener, ActionListener
     // Modes of operation .........................................
     // Auto mode active: game calls snake algorithm to obtain next coordinate.
     // Auto mode inactive: snake is commanded with the arrow keys.
-    boolean autoModeActive;
+    boolean autoModeActive = false;
     boolean isStopped;
     
     // Next coordinate for snake. Update in key listener in manual mode.
@@ -73,8 +83,11 @@ public class Game_0 extends JFrame implements IGame, KeyListener, ActionListener
     JPanel pnInfo;
     JLabel lbPoints, lbFruits;
      
+    JFrame frame;
     
     public Game_0(int rows, int cols) throws IOException {
+    	
+    	frame = this;
     	
         nRows = rows; nCols = cols;
     	
@@ -109,11 +122,12 @@ public class Game_0 extends JFrame implements IGame, KeyListener, ActionListener
         
     	// GAME OBJECTS  .......................................    
         fillRandom(1);
-        aSnake = new SnakeAutonomous0("link", "link", 0, new Coordinate(0,0));
+        aSnake = new SnakeAutonomous0("link", "link", 1, new Coordinate(0,0));
         objects.add(aSnake);
   
         // Create and start timer.
 		timer = new Timer(tick, this);
+		timer.start();
     }
     
     ////////////////////////////////////////////////////////////////////////////////////
@@ -183,16 +197,16 @@ public class Game_0 extends JFrame implements IGame, KeyListener, ActionListener
     	Coordinate nextCoord = obj.getCoordinate();
     	switch(direction){
 		case IGameConstants.Up: 
-			nextCoord = new Coordinate(aSnake.getCoordinate().getColumn(), aSnake.getCoordinate().getRow()-1);
+			nextCoord = new Coordinate(obj.getCoordinate().getColumn(), obj.getCoordinate().getRow()-1);
 			break;
 		case IGameConstants.Down:
-			nextCoord = new Coordinate(aSnake.getCoordinate().getColumn(), aSnake.getCoordinate().getRow()+1);
+			nextCoord = new Coordinate(obj.getCoordinate().getColumn(), obj.getCoordinate().getRow()+1);
 			break;
 		case IGameConstants.Left:
-			nextCoord = new Coordinate(aSnake.getCoordinate().getColumn()-1, aSnake.getCoordinate().getRow());
+			nextCoord = new Coordinate(obj.getCoordinate().getColumn()-1, obj.getCoordinate().getRow());
 			break;
 		case IGameConstants.Right:
-			nextCoord = new Coordinate(aSnake.getCoordinate().getColumn()+1, aSnake.getCoordinate().getRow());
+			nextCoord = new Coordinate(obj.getCoordinate().getColumn()+1, obj.getCoordinate().getRow());
 			break;			
 		default:break;
 		}
@@ -215,9 +229,39 @@ public class Game_0 extends JFrame implements IGame, KeyListener, ActionListener
 	 * @param obj game object
 	 * @param target postition where obj is to be placed
 	 * @return true if the motion has been done.
+	 * @throws tooMuchShiftException 
+	 * @throws NoMobileObjectException 
 	 */
-	public boolean updateObjectPosition(IGameObject obj, Coordinate target) {
-		return true;
+	public boolean updateObjectPosition(IGameObject obj, Coordinate target) throws NoMobileObjectException, tooMuchShiftException {
+		switch (currentDirection) {
+		case IGameConstants.Up:
+			if (obj.getCoordinate().getRow() > 0) {
+				obj.setCoordinate(target);
+				return true;
+			}
+		break;
+		case IGameConstants.Down:
+			if (obj.getCoordinate().getRow() < nRows-1) {
+				obj.setCoordinate(target);
+				return true;
+			}
+		break;
+		case IGameConstants.Right:
+			if (obj.getCoordinate().getColumn() < nCols-1) {
+				obj.setCoordinate(target);
+				return true;
+			}
+		break;
+		case IGameConstants.Left:
+			if (obj.getCoordinate().getColumn() > 0) {
+				obj.setCoordinate(target);
+				return true;
+			}
+		break;
+		default:
+			return false;
+		}		
+		return false;
 	}
 	
 	/**
@@ -226,7 +270,39 @@ public class Game_0 extends JFrame implements IGame, KeyListener, ActionListener
 	 * @return true if game can continue.
 	 */
 	public boolean processObjectPosition(IGameObject obj) {	
-		return true;
+		if (obj instanceof Snake) {
+			for(IGameObject go : objects){
+	   	    	if(go.getCoordinate().getRow()==obj.getCoordinate().getRow() && go.getCoordinate().getColumn()==obj.getCoordinate().getColumn()) {
+	   	    		if (go instanceof Obstacle) { //Si es obstaculo pierde el juego
+	   	    			return false;
+					} else if(go instanceof Fruit){//Si es fruta, desaparece y añade tantos eslabones como el valor de la fruta
+						processFruit((Fruit) go);
+						return true;
+					} else if(go instanceof Bug){//Si es bicho, desaparece y quita tantos eslabones como el valor del bicho
+						processBug((BugAutonomous0) go);
+						break;
+					}
+	   	    	}
+			}
+		} else if(obj instanceof Bug){
+			for(IGameObject go : objects){
+	   	    	if(go.getCoordinate().getRow()==obj.getCoordinate().getRow() && go.getCoordinate().getColumn()==obj.getCoordinate().getColumn()) {
+	   	    		if (go instanceof Obstacle) { //Si es obstaculo el bicho muere
+	   	    			return true;
+					} else if(go instanceof Fruit){//Si es fruta, desaparece la fruta
+						obj.setValue(obj.getValue()+go.getValue());
+						objects.remove(go);
+						return true;
+					} else if(go instanceof SnakeLink){//Si es un SnakeLink, quita un eslabon
+						SnakeLink lnk = aSnake.removeLink();
+						objects.remove(lnk);
+						return true;
+					}
+	   	    	}
+			}
+		}
+		
+		return true; //solo puede ser bicho o snake
 	}
 
 	/**
@@ -279,7 +355,13 @@ public class Game_0 extends JFrame implements IGame, KeyListener, ActionListener
 	 * @return bugs of the board
 	 */
 	public ArrayList<BugAutonomous0> getBug(){
-		return null;
+		ArrayList<BugAutonomous0> bugs = new ArrayList<BugAutonomous0>();
+		for (IGameObject gObject : objects) {
+			if(gObject instanceof BugAutonomous0){
+				bugs.add((BugAutonomous0) gObject);
+			}
+		}
+		return bugs;
 	}
 	
 	/**
@@ -332,16 +414,25 @@ public class Game_0 extends JFrame implements IGame, KeyListener, ActionListener
 	
 	// Actions to be taken when the snake eats a fruit.
 	private void processFruit(Fruit f){
-		
+		for (int i = 0; i < f.getValue()+1; i++) {
+			SnakeLink lnk = aSnake.addLink();
+			objects.add(lnk);
+		}
+		objects.remove(f);
 	}
 	
 	// Actions to be taken when the snake eats a bug.
 	private void processBug(Bug b){
+		for (int i = 0; i < b.getValue()+1; i++) {
+			SnakeLink lnk = aSnake.removeLink();
+			objects.remove(lnk);
+		}
+		objects.remove(b);
 	}
 		
 	// Actions to be taken to add a bug to the game.
 	private BugAutonomous0 spawnBug(){
-		return null;
+		return new BugAutonomous0("bug", "bug", 0, new Coordinate(5,5));
 	}
 	
 
@@ -351,7 +442,9 @@ public class Game_0 extends JFrame implements IGame, KeyListener, ActionListener
      * MANEJADORES DE ENTRADAS DE TECLADO: cambio de dirección en modo manual.
      */
 	@Override
-	public void keyPressed(KeyEvent arg0) {	}
+	public void keyPressed(KeyEvent arg0) {	
+		
+	}
 
 	@Override
 	public void keyReleased(KeyEvent arg0) {
@@ -410,8 +503,13 @@ public class Game_0 extends JFrame implements IGame, KeyListener, ActionListener
 		// Update bugs
 		ArrayList<BugAutonomous0> bugs = getBug();
 		for (BugAutonomous0 bug : bugs){
-				Coordinate next = bug.getNextCoordinate(toCharMatrix());
-				updateObjectPosition(bug, next);
+				Coordinate next = getNextCoordinate(bug, currentDirection);//= bug.getNextCoordinate(toCharMatrix());
+				try {
+					updateObjectPosition(bug, next);
+				} catch (NoMobileObjectException | tooMuchShiftException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
 				processObjectPosition(bug);
 		}
 		
@@ -423,8 +521,38 @@ public class Game_0 extends JFrame implements IGame, KeyListener, ActionListener
 		else{
 			nextSnakeCoord = getNextCoordinate(aSnake, currentDirection);
 		}
-		updateObjectPosition(aSnake, nextSnakeCoord);
-		processObjectPosition(aSnake);
+		try {
+			updateObjectPosition(aSnake, nextSnakeCoord);
+		} catch (NoMobileObjectException | tooMuchShiftException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		if(!processObjectPosition(aSnake)){
+			//custom title, error icon
+			Object[] options = {"Yes, I want to play again!",
+            "No, thanks."};
+			int n = JOptionPane.showOptionDialog(panelJuego,
+				    "PLAY AGAIN?",
+				    "GAME OVER",
+				    JOptionPane.YES_NO_OPTION,
+				    JOptionPane.ERROR_MESSAGE,
+				    null,     //do not use a custom Icon
+				    options,  //the titles of buttons
+				    options[0]);
+			if (n == JOptionPane.YES_OPTION) {
+				frame.dispose();
+				try {
+					new Game_0(20,20);
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			}else if(n == JOptionPane.CLOSED_OPTION){
+				frame.dispose();
+			}else{
+				frame.dispose();
+			}
+		}
 		
 		// Actualizar gráficos del juego.
 		panelJuego.updateGame(toCharMatrix());

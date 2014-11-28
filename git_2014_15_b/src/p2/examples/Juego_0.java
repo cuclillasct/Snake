@@ -82,8 +82,8 @@ public class Juego_0 extends JFrame implements KeyListener, ActionListener{
         
         // views
    	    vObstacle = new VSquare("obstacle");
-   	    vFood = new VImage("food", "resources/pastel1.jpg");
-   	    vLink = new VImage("link", "resources/raton.jpg");
+   	    vFood = new VImage("food", "resources/cupcake.png");
+   	    vLink = new VImage("link", "resources/snake.png");
         
    	    // game objects creation and association with views.
    	    aLink = new SnakeLink("link", "link", 1, new Coordinate(2,0));

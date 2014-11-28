@@ -31,12 +31,31 @@ public class BugAutonomous0 extends Bug implements IAutonomousObject {
 
 	@Override
 	public int getDirection(char[][] board) {
-		return 0;
+		return direction;
 	}
 	
 	@Override
 	public Coordinate getNextCoordinate(char[][] board){
-		return null;
+Coordinate coord = null;
+		
+		switch (this.direction) {
+		case IGameConstants.Down:
+			coord = new Coordinate(this.pos.getRow()+1,this.pos.getColumn());
+			break;
+		case IGameConstants.Up:
+			coord = new Coordinate(this.pos.getRow()-1,this.pos.getColumn());
+			break;
+		case IGameConstants.Left:
+			coord = new Coordinate(this.pos.getRow(),this.pos.getColumn()-1);
+			break;
+		case IGameConstants.Right:
+			coord = new Coordinate(this.pos.getRow(),this.pos.getColumn()+1);
+			break;
+		default:
+			break;
+		}
+		
+		return coord;
 	}
 	
 	private boolean collisionWithLimits(char[][] board) {

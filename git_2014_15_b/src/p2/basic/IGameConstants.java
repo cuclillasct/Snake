@@ -21,5 +21,8 @@ public interface IGameConstants {
     public static final int Down  = 2;
     public static final int Right = 3;
     public static final int Left  = 4;
+    
+    //New Labels
+    public static final String DirectionLabel  = "Direction";
 
 }
