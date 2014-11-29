@@ -48,7 +48,7 @@ public class GamePanel extends JPanel  {
     	
     	setSize(new Dimension(cols*edge, rows*edge));
     	
-    	vObstacle = new VSquare("obstacle");
+    	vObstacle = new VImage("bug", "resources/rock.png");  
     	vGrape = new VImage("food", "resources/cupcake.png");
     	vLink = new VCircle();  
     	vBug  = new VImage("bug", "resources/bug.jpg");  
@@ -73,8 +73,8 @@ public class GamePanel extends JPanel  {
     				if (board[i][j] != IGameConstants.Free) {
     					IView vi = tViews.get(new Character(board[i][j]));
     					if (vi != null){
-    						vi.setSize(edge-3);
-    						vi.draw(g, i * edge, j * edge);
+    						vi.setSize(edge-2);
+    						vi.draw(g, (i * edge)+1, (j * edge)+1);
     					}
     				}
     			}
