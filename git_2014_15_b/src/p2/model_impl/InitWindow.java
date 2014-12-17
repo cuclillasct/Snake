@@ -33,6 +33,7 @@ import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.Timer;
 import javax.swing.border.EtchedBorder;
@@ -199,13 +200,23 @@ public class InitWindow extends JFrame implements ActionListener {
 
 				@Override
 				public void actionPerformed(ActionEvent arg0) {
-					thread.stop();
+					int level = 0;
+					Object[] opt = {1,2,3,4,5,6,7,8,9,10};
 					claveSeleccionada = arg0.getActionCommand();
 					System.out.println(claveSeleccionada);
 					switch (claveSeleccionada) {
 					case "Juego Manual":
+						level = (int) JOptionPane.showInputDialog(this,
+							    "Elija un nivel de dificultad. Del 1 al 10.", // Cuando acaba el juego, se suman 3puntos/snakelink
+							    "Dificultad de la partida",
+							    JOptionPane.QUESTION_MESSAGE,
+							    null,     //do not use a custom Icon
+							    opt,  //the titles of buttons
+							    opt[0]);
+						timer.stop();
+						thread.stop();
 						try {
-							new Game_0(20, 20);
+							new Game_0(15, 15, level > 0 ? level : 1, false, SnakeAutonomous0.BUSCA_FRUTAS_Y_ESQUIVA_OBSTACULOS);
 						} catch (IOException e) {
 							// TODO Auto-generated catch block
 							e.printStackTrace();
@@ -213,16 +224,50 @@ public class InitWindow extends JFrame implements ActionListener {
 						frame.dispose();
 						break;
 					case "Juego Automático":
-						try {
-							new Game_0(20, 20);
-						} catch (IOException e) {
-							// TODO Auto-generated catch block
-							e.printStackTrace();
+						level = (int) JOptionPane.showInputDialog(this,
+							    "Elija un nivel de dificultad. Del 1 al 10.", // Cuando acaba el juego, se suman 3puntos/snakelink
+							    "Dificultad de la partida",
+							    JOptionPane.QUESTION_MESSAGE,
+							    null,     //do not use a custom Icon
+							    opt,  //the titles of buttons
+							    opt[0]);
+						timer.stop();
+						thread.stop();
+						Object[] options = {"Sólo busca fruta",
+			            "Busca fruta y esquiva obstáculos"};
+						int n = JOptionPane.showOptionDialog(this,
+							    "Elegido el nivel: " + (level > 0 ? level : 1) + ". Hay dos formas distintas de inteligencia para la Serpiente, elija una.", // Cuando acaba el juego, se suman 3puntos/snakelink
+							    "Partida inteligente",
+							    JOptionPane.YES_NO_OPTION,
+							    JOptionPane.INFORMATION_MESSAGE,
+							    null,     //do not use a custom Icon
+							    options,  //the titles of buttons
+							    options[0]);
+						if (n == JOptionPane.YES_OPTION) {
+							timer.stop();
+							thread.stop();
+							frame.dispose();
+							try {
+								new Game_0(15,15,level > 0 ? level : 1,true,SnakeAutonomous0.BUSCA_FRUTAS);
+							} catch (IOException e) {
+								// TODO Auto-generated catch block
+								e.printStackTrace();
+							}
+						}else{
+							timer.stop();
+							thread.stop();
+							frame.dispose();
+							try {
+								new Game_0(15,15,level > 0 ? level : 1,true,SnakeAutonomous0.BUSCA_FRUTAS_Y_ESQUIVA_OBSTACULOS);
+							} catch (IOException e) {
+								// TODO Auto-generated catch block
+								e.printStackTrace();
+							}
 						}
-						frame.dispose();
 						break;
 					case "Salir":
 						frame.dispose();
+						System.exit(1);
 						break;
 					default:
 						break;

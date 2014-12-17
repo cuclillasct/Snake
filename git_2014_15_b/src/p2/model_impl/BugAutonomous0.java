@@ -1,5 +1,7 @@
 package p2.model_impl;
 
+import java.util.Random;
+
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -36,26 +38,27 @@ public class BugAutonomous0 extends Bug implements IAutonomousObject {
 	
 	@Override
 	public Coordinate getNextCoordinate(char[][] board){
-Coordinate coord = null;
-		
-		switch (this.direction) {
-		case IGameConstants.Down:
-			coord = new Coordinate(this.pos.getRow()+1,this.pos.getColumn());
+		Coordinate nextCoord = null;
+
+		switch(randInt(1, 4)){
+		case IGameConstants.Up: 
+			nextCoord = new Coordinate(this.getCoordinate().getColumn(), this.getCoordinate().getRow()-1);
 			break;
-		case IGameConstants.Up:
-			coord = new Coordinate(this.pos.getRow()-1,this.pos.getColumn());
+		case IGameConstants.Down:
+			nextCoord = new Coordinate(this.getCoordinate().getColumn(), this.getCoordinate().getRow()+1);
 			break;
 		case IGameConstants.Left:
-			coord = new Coordinate(this.pos.getRow(),this.pos.getColumn()-1);
+			nextCoord = new Coordinate(this.getCoordinate().getColumn()-1, this.getCoordinate().getRow());
 			break;
 		case IGameConstants.Right:
-			coord = new Coordinate(this.pos.getRow(),this.pos.getColumn()+1);
-			break;
-		default:
-			break;
+			nextCoord = new Coordinate(this.getCoordinate().getColumn()+1, this.getCoordinate().getRow());
+			break;			
+		default:break;
 		}
-		
-		return coord;
+		if(nextCoord.getRow() < 0 || nextCoord.getColumn() < 0 || nextCoord.getRow() == board.length || nextCoord.getColumn() == board[1].length || board[nextCoord.getColumn()][nextCoord.getRow()] == IGameConstants.Obstacle){
+			return getNextCoordinate(board);
+		}
+    	return nextCoord;
 	}
 	
 	private boolean collisionWithLimits(char[][] board) {
@@ -64,5 +67,18 @@ Coordinate coord = null;
 	 
 	private boolean collisionWithObstacle(char[][] board){
 		return false;
+	}
+	
+	public static int randInt(int min, int max) {
+
+	    // NOTE: Usually this should be a field rather than a method
+	    // variable so that it is not re-seeded every call.
+	    Random rand = new Random();
+
+	    // nextInt is normally exclusive of the top value,
+	    // so add 1 to make it inclusive
+	    int randomNum = rand.nextInt((max - min + 1)) + min;
+
+	    return randomNum;
 	}
 }

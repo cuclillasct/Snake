@@ -9,6 +9,7 @@ import org.json.JSONObject;
 import p2.basic.Coordinate;
 import p2.basic.IGameCharacter;
 import p2.basic.IJSONizable;
+import p2.basic.NoMobileObjectException;
 import p2.basic.ParamException;
 import p2.basic.tooMuchShiftException;
 
@@ -129,14 +130,8 @@ public class Snake extends AGameObject implements IGameCharacter {
 
 	@Override
 	public JSONObject toJSONObject() {
-		JSONObject jObj = new JSONObject();
-		try {
-			jObj.put(IJSONizable.TypeLabel, this.getClass().getName());
-			jObj.put(AGameObject.IdLabel, this.id);
-			jObj.put(AGameObject.NameLabel, this.name);
-			jObj.put(AGameObject.ValueLabel, this.value);
-			jObj.put(AGameObject.PositionLabel, this.pos.toJSONObject());
-			
+		JSONObject jObj = super.toJSONObject();
+		try {			
 			JSONArray jArr = new JSONArray();
 			for (int i = 0; i < links.size(); i++){
 				jArr.put(i, links.get(i).toJSONObject());
@@ -155,12 +150,23 @@ public class Snake extends AGameObject implements IGameCharacter {
 		links.add(lnk);
 		return lnk;
 	}
+	
+	public SnakeLink addLink(SnakeLink lnk) {
+		links.add(lnk);
+		return lnk;
+	}
 
 	public SnakeLink removeLink() {
 		if(links.size() > 1){
 			return links.remove(links.size()-1);
 		}
 		return null;
+	}
+	
+	public void removeLinks(){
+		for (int i = 0; i <= getNumberOfLinks(); i++) {
+			removeLink();
+		}
 	}
 
 	public int getNumberOfLinks() {

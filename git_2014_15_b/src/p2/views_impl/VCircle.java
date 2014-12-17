@@ -9,7 +9,7 @@ public class VCircle implements IView {
 	
 	protected String id;
 	protected int edge = 30;
-	protected Color myColor = Color.blue;
+	protected Color myColor = new Color(18, 165, 18, 255);
 	
 	public VCircle(){}
 	

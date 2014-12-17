@@ -9,7 +9,15 @@ import java.util.ArrayList;
  */
 public interface IGame extends IJSONizable {
 
-	
+	public static final String DirectionLabel = "Direction";
+	public static final String SnakeLabel = "Snake";
+	public static final String ObjectsLabel = "Objects";
+	public static final String AutoLabel = "ModeAuto";
+	public static final String TickLabel = "TimerTick";
+	public static final String TicksLabel = "Ticks";
+	public static final String RowsLabel = "Rows";
+	public static final String ColsLabel = "Cols";
+
 	/**
 	 * Devuelve el identificador del juego (en realidad de la partida en curso).
 	 * @return identificador del juego (en realidad de la partida en curso).

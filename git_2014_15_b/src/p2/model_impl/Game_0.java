@@ -15,15 +15,18 @@ import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Enumeration;
+import java.util.Iterator;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 import javax.swing.BoxLayout;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JDialog;
+import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JMenu;
@@ -36,6 +39,7 @@ import javax.swing.Timer;
 import javazoom.jl.decoder.JavaLayerException;
 import javazoom.jl.player.Player;
 
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -45,15 +49,19 @@ import p2.basic.IGame;
 import p2.basic.IGameCharacter;
 import p2.basic.IGameConstants;
 import p2.basic.IGameObject;
+import p2.basic.IJSONizable;
 import p2.basic.IView;
 import p2.basic.NoMobileObjectException;
 import p2.basic.ParamException;
 import p2.basic.tooMuchShiftException;
 import p2.views_impl.GamePanel;
 import p2.views_impl.VImage;
+import utilidades.Utilidades;
 
 
 public class Game_0 extends JFrame implements IGame, KeyListener, ActionListener {
+	
+	public static final String PATH = "C:/Users/Jorge/Desktop/game.json";
 	
 	// Identifiers ................................................
 	String ownerId = "Unknown";
@@ -73,11 +81,11 @@ public class Game_0 extends JFrame implements IGame, KeyListener, ActionListener
     // Auto mode active: game calls snake algorithm to obtain next coordinate.
     // Auto mode inactive: snake is commanded with the arrow keys.
     boolean autoModeActive = false;
+    int estrat = 1;
     boolean isStopped;
     
     // Next coordinate for snake. Update in key listener in manual mode.
     int currentDirection = IGameConstants.Right;
-    
 
     // Game objects.....................................................
     ConcurrentLinkedQueue<IGameObject> objects = new ConcurrentLinkedQueue<>();
@@ -89,22 +97,29 @@ public class Game_0 extends JFrame implements IGame, KeyListener, ActionListener
     JButton incSpd, decSpd;
     
     // Control Game mode and game speed (in menu bar).
+    boolean wantSave = false;
     JMenuBar mBar;
     JMenu mFile;
-    JMenuItem itSaveToFile, itLoadFromFile;
+    JMenuItem itSaveToFile, itLoadFromFile, itRestartGame;
     
     // Game info
     InfoPanel pnInfo;
     int nPoints = 0, nBugs = 0;
+    
+    int lvl = 1;
     
     JFrame frame;
     
     Thread thread;
     Thread music;
     
-    public Game_0(int rows, int cols) throws IOException {
+    public Game_0(int rows, int cols, int level, boolean autoMode, int estrategia) throws IOException {
     	
-    	frame = this;   
+    	frame = this;
+
+    	autoModeActive = autoMode;
+    	estrat = estrategia;
+    	lvl = level;
     	
     	music = new Thread(new Runnable() {
     	    public void run() {
@@ -132,9 +147,9 @@ public class Game_0 extends JFrame implements IGame, KeyListener, ActionListener
         panelJuego = new GamePanel(rows, cols, edge);
         getContentPane().setLayout(new BorderLayout());
         getContentPane().add(panelJuego);  
-        getContentPane().add(new JLabel("    "), BorderLayout.WEST);  
-        getContentPane().add(new JLabel("    "), BorderLayout.EAST);  
-        getContentPane().add(new JLabel("    "), BorderLayout.NORTH);  
+//        getContentPane().add(new JLabel("    "), BorderLayout.WEST);  
+//        getContentPane().add(new JLabel("    "), BorderLayout.EAST);  
+//        getContentPane().add(new JLabel("    "), BorderLayout.NORTH);  
         
         buttons = new JPanel();
         buttons.setLayout(new GridLayout(2,1));
@@ -159,7 +174,7 @@ public class Game_0 extends JFrame implements IGame, KeyListener, ActionListener
         this.setFocusable(true);
           
         // Fijamos tamaño de la ventana.       
-        setSize (120 + edge * nRows, 120 + edge * nCols);
+        setSize (96 + edge * (nRows+2)+6, 87 + edge * (nCols+2)+6);
         // Hacemos la ventana visible.
         setVisible(true);    
         //setResizable(false);
@@ -168,40 +183,118 @@ public class Game_0 extends JFrame implements IGame, KeyListener, ActionListener
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);   
         
     	// GAME OBJECTS  .......................................    
-        fillRandom(1);
+        fillRandom(lvl);
         aSnake = new SnakeAutonomous0("link", "link", 1, new Coordinate(0,0));
+        aSnake.setEstrategia(estrategia);
         objects.add(aSnake);
-  
+        
         // Create and start timer.
 		timer = new Timer(tick, this);
 		timer.start();
     }
     
+    public void initFromFile (String path) throws IOException, JSONException, ParamException{
+    	JSONObject jObj = new JSONObject(Utilidades.leerFichero(path));
+    	objects.clear();
+    	currentDirection = jObj.getInt(DirectionLabel);
+    	nRows = jObj.getInt(RowsLabel);
+    	nCols = jObj.getInt(ColsLabel);
+    	aSnake = new SnakeAutonomous0(jObj.getJSONObject(SnakeLabel));
+    	autoModeActive = jObj.getBoolean(AutoLabel);
+    	tick = jObj.getInt(TickLabel);
+    	timer = new Timer (tick ,this);
+    	ticks = jObj.getInt(TicksLabel);
+    	JSONArray jarr = jObj.getJSONArray(ObjectsLabel);
+    	int auxN = 1;
+		for (int i = 0; i < jarr.length(); i++){
+			switch (jarr.getJSONObject(i).getString(IJSONizable.TypeLabel)) {
+			case "p2.model_impl.SnakeAutonomous0":
+				aSnake = new SnakeAutonomous0(jarr.getJSONObject(i));
+				objects.add(aSnake);
+				System.out.println("Serpiente cargada");	
+				break;
+			case "p2.model_impl.BugAutonomous0":
+				objects.add(new BugAutonomous0(jarr.getJSONObject(i)));
+				System.out.println("Bicho cargado");	
+				break;
+			case "p2.model_impl.Fruit":
+				objects.add(new Fruit(jarr.getJSONObject(i)));
+				break;
+			case "p2.model_impl.Obstacle":
+				objects.add(new Obstacle(jarr.getJSONObject(i)));
+				break;
+			case "p2.model_impl.SnakeLink":
+				SnakeLink snkLink = new SnakeLink(jarr.getJSONObject(i));
+				objects.add(aSnake.getLinks().get(auxN++));
+				System.out.println("Enlace cargado");
+				break;
+			default:
+				break;
+			}
+		}
+		panelJuego.updateGame(toCharMatrix());
+		timer.start();
+	}
+    
     ////////////////////////////////////////////////////////////////////////////////////
     // BUILD MENUS.
     private void buildMenuBar(){
     		
+    	// Reiniciando
+    	itRestartGame = new JMenuItem("Restart Game");
+    	itRestartGame.addActionListener(
+    			new ActionListener(){
+    				public void actionPerformed(ActionEvent ae){
+    					System.out.println("restarting game");
+    					timer.stop();
+    					music.stop();
+    					frame.dispose();
+						try {
+							new Game_0(nRows,nCols, lvl, autoModeActive, estrat);
+						} catch (IOException e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						}
+    				}
+    			}
+    	);
+    	
     	// Saving to a file ...
-    	itSaveToFile = new JMenuItem("Save to File ... ");
+    	itSaveToFile = new JMenuItem("Save to File");
     	itSaveToFile.addActionListener(
     			new ActionListener(){
     				public void actionPerformed(ActionEvent ae){
-    					System.out.println("saving to file ...");			
+    					System.out.println("saving to file ...");
+    					wantSave = true;
     				}
     			}
     	);
     	
     	// Loading from a file
-    	itLoadFromFile = new JMenuItem("Load to File ... ");
+    	itLoadFromFile = new JMenuItem("Load from File");
     	itLoadFromFile.addActionListener(
     			new ActionListener(){
     				public void actionPerformed(ActionEvent ae){
-    					System.out.println("loading from file ...");			
+    					timer.stop();
+    					System.out.println("loading from file ...");	
+    					try {
+							initFromFile(PATH);
+						} catch (IOException e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						} catch (JSONException e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						} catch (ParamException e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						}
     				}
     			}
     	);
     	
-    	mFile = new JMenu("File");
+    	mFile = new JMenu("Game Options");
+    	mFile.add(itRestartGame);
     	mFile.add(itSaveToFile);
     	mFile.add(itLoadFromFile);
     	
@@ -322,6 +415,7 @@ public class Game_0 extends JFrame implements IGame, KeyListener, ActionListener
 		case IGameConstants.Left:
 			if (obj.getCoordinate().getColumn() > 0) {
 				obj.setCoordinate(target);
+				System.out.println(target.getColumn());
 				return true;
 			}
 		break;
@@ -337,7 +431,7 @@ public class Game_0 extends JFrame implements IGame, KeyListener, ActionListener
 	 * @return true if game can continue.
 	 */
 	public boolean processObjectPosition(IGameObject obj) {	
-		if (obj instanceof Snake) {
+		if (obj instanceof Snake) { // Serpiente
 			for(IGameObject go : objects){
 	   	    	if(go.getCoordinate().getRow()==obj.getCoordinate().getRow() && go.getCoordinate().getColumn()==obj.getCoordinate().getColumn()) {
 	   	    		if (go instanceof Obstacle) { //Si es obstaculo pierde el juego
@@ -354,15 +448,15 @@ public class Game_0 extends JFrame implements IGame, KeyListener, ActionListener
 					}
 	   	    	}
 			}
-		} else if(obj instanceof Bug){
+		} else if(obj instanceof Bug){ // Bicho
 			for(IGameObject go : objects){
 	   	    	if(go.getCoordinate().getRow()==obj.getCoordinate().getRow() && go.getCoordinate().getColumn()==obj.getCoordinate().getColumn()) {
 	   	    		if (go instanceof Obstacle) { //Si es obstaculo el bicho muere
 	   	    			objects.remove(obj);
 	   	    			return true;
 					} else if(go instanceof Fruit){//Si es fruta, desaparece la fruta
-						obj.setValue(obj.getValue()+go.getValue());
-						objects.remove(go);
+						obj.setValue(obj.getValue()+1);
+						go.setValue(go.getValue() > 0 ? go.getValue() - 1 : go.getValue());
 						return true;
 					} else if(go instanceof SnakeLink){//Si es un SnakeLink, quita un eslabon
 						thread = new Thread(new Runnable() {
@@ -417,9 +511,9 @@ public class Game_0 extends JFrame implements IGame, KeyListener, ActionListener
     	
     	pObsta = (pObsta <= 0.16)?pObsta:0.16;
     	
-    	for (int col = 0; col < nCols; col++){
+    	for (int col = 1; col < nCols - 1; col++){
         	// The first row is free.
-    		for (int row = 1; row < nRows; row ++){
+    		for (int row = 1; row < nRows - 1; row ++){
     			selector = Math.random();
     			if (selector < pFruit) {
     				objects.add(new Fruit("fruit", "fruit", 5, new Coordinate(col, row))); 
@@ -515,8 +609,9 @@ public class Game_0 extends JFrame implements IGame, KeyListener, ActionListener
 				board[obj.getCoordinate().getColumn()][obj.getCoordinate().getRow()] = IGameConstants.Bug;
 			else if (obj instanceof SnakeLink) 
 				board[obj.getCoordinate().getColumn()][obj.getCoordinate().getRow()] = IGameConstants.SnakeLink;
-			else if (obj instanceof Snake) 
+			else if (obj instanceof Snake) {
 				board[obj.getCoordinate().getColumn()][obj.getCoordinate().getRow()] = IGameConstants.SnakeHead;
+			}
 		}
 		return board;
 	}
@@ -546,6 +641,7 @@ public class Game_0 extends JFrame implements IGame, KeyListener, ActionListener
 			SnakeLink lnk = aSnake.addLink();
 			objects.add(lnk);
 		}
+		aSnake.setNoObjective();
 		nPoints += f.getValue();
 		objects.remove(f);
 	}
@@ -563,7 +659,7 @@ public class Game_0 extends JFrame implements IGame, KeyListener, ActionListener
 		
 	// Actions to be taken to add a bug to the game.
 	private BugAutonomous0 spawnBug(){
-		return new BugAutonomous0("bug", "bug", 0, new Coordinate(5,5));
+		return new BugAutonomous0("bug", "bug", 0, new Coordinate(BugAutonomous0.randInt(0, nCols - 1), BugAutonomous0.randInt(0, nRows - 1)));
 	}
 	
 
@@ -579,20 +675,25 @@ public class Game_0 extends JFrame implements IGame, KeyListener, ActionListener
 
 	@Override
 	public void keyReleased(KeyEvent arg0) {
-		if (!autoModeActive) {
-			int keyCode = arg0.getKeyCode();
-			switch(keyCode){
-			case IGameConstants.UpKey: currentDirection = IGameConstants.Up;
-				break;
-			case IGameConstants.DownKey:currentDirection = IGameConstants.Down;
-				break;
-			case IGameConstants.LeftKey:currentDirection = IGameConstants.Left;
-				break;
-			case IGameConstants.RightKey:currentDirection = IGameConstants.Right;
-				break;			
-			default:break;
+		int keyCode = arg0.getKeyCode();
+		switch(keyCode){
+		case IGameConstants.UpKey: currentDirection = IGameConstants.Up; aSnake.setDirection(IGameConstants.Up);
+			break;
+		case IGameConstants.DownKey:currentDirection = IGameConstants.Down; aSnake.setDirection(IGameConstants.Down);
+			break;
+		case IGameConstants.LeftKey:currentDirection = IGameConstants.Left; aSnake.setDirection(IGameConstants.Left);
+			break;
+		case IGameConstants.RightKey:currentDirection = IGameConstants.Right; aSnake.setDirection(IGameConstants.Right);
+			break;
+		case IGameConstants.SpaceKey:
+			if (timer.isRunning()) {
+				timer.stop();
+			} else {
+				timer.start();
 			}
+			default:break;
 		}
+
 	}
 
 	@Override
@@ -609,7 +710,7 @@ public class Game_0 extends JFrame implements IGame, KeyListener, ActionListener
 			switch (arg0.getActionCommand()) {
 			case "+ Speed":	
 				System.out.println("+ Speed");
-				tick -= 20;
+				tick -= (tick>19)?20:0;
 				timer.setDelay(tick);
 				break;
 			case "- Speed":
@@ -624,6 +725,11 @@ public class Game_0 extends JFrame implements IGame, KeyListener, ActionListener
 			// Recuperar foco. Necesario para que lleguen
 						// eventos de teclado.
 						requestFocus();
+						
+						if (wantSave) {
+							timer.stop();
+							saveToFile(PATH);
+						}
 						
 						// Añadir link cada 10 ticks de reloj.
 						if (ticks%10 == 0){
@@ -640,7 +746,9 @@ public class Game_0 extends JFrame implements IGame, KeyListener, ActionListener
 						// Incrementar velocidad y reiniciar cuenta de
 						// ticks cada 100 ticks.
 						if (ticks%100 == 0){
-							tick -= (tick > 50)?50:0;
+							int minimoTick = 80;
+							int aumentoTick = 10;
+							tick -= (tick > minimoTick)?aumentoTick:0;
 							timer.setDelay(tick);
 							ticks = 0;	
 						}
@@ -651,7 +759,8 @@ public class Game_0 extends JFrame implements IGame, KeyListener, ActionListener
 						// Update bugs
 						ArrayList<BugAutonomous0> bugs = getBug();
 						for (BugAutonomous0 bug : bugs){
-								Coordinate next = getNextCoordinate(bug, currentDirection);//= bug.getNextCoordinate(toCharMatrix());
+								Coordinate next = bug.getNextCoordinate(toCharMatrix());
+//								Coordinate next = getNextCoordinate(bug, currentDirection);//
 								try {
 									updateObjectPosition(bug, next);
 								} catch (NoMobileObjectException | tooMuchShiftException e) {
@@ -665,12 +774,14 @@ public class Game_0 extends JFrame implements IGame, KeyListener, ActionListener
 						Coordinate nextSnakeCoord = null;
 						if (autoModeActive) {
 							nextSnakeCoord = aSnake.getNextCoordinate(toCharMatrix());
+							currentDirection = aSnake.getDirection(toCharMatrix());
 						}
 						else{
 							nextSnakeCoord = getNextCoordinate(aSnake, currentDirection);
 						}
 						try {
 							if(updateObjectPosition(aSnake, nextSnakeCoord)){ //En cada movimiento, SONIDO MOVE
+								
 								thread = new Thread(new Runnable() {
 						    	    public void run() {
 						    	    	File file = new File(System.getProperty("user.dir")+"/resources/move2.mp3");
@@ -709,9 +820,11 @@ public class Game_0 extends JFrame implements IGame, KeyListener, ActionListener
 								    options,  //the titles of buttons
 								    options[0]);
 							if (n == JOptionPane.YES_OPTION) {
+								timer.stop();
+								music.stop();
 								frame.dispose();
 								try {
-									new Game_0(20,20);
+									new Game_0(nRows,nCols, lvl,autoModeActive,estrat);
 								} catch (IOException e) {
 									// TODO Auto-generated catch block
 									e.printStackTrace();
@@ -723,27 +836,68 @@ public class Game_0 extends JFrame implements IGame, KeyListener, ActionListener
 								this.dispose();
 								System.exit(1);
 							}
-						}		
-		}
-		
-		
-		
-		// Actualizar gráficos del juego.
-		panelJuego.updateGame(toCharMatrix());
-	}
-	
+						}	
 
-	
-    public static void main(String [] args) throws IOException, JSONException, ParamException{
-        Game_0 gui = new Game_0(20, 20);
-     }
+						// Actualizar gráficos del juego.
+						panelJuego.updateGame(toCharMatrix());
+						
+						if(getFruit().size() == 0){
+							timer.stop();
+							//custom title, error icon
+							Object[] options = {"Yes, I want to play again!",
+				            "No, thanks."};
+							int n = JOptionPane.showOptionDialog(panelJuego,
+								    "SCORE: "+ (nPoints + aSnake.getLinks().size()*3) +"  PLAY AGAIN?", // Cuando acaba el juego, se suman 3puntos/snakelink
+								    "W",
+								    JOptionPane.YES_NO_OPTION,
+								    JOptionPane.INFORMATION_MESSAGE,
+								    null,     //do not use a custom Icon
+								    options,  //the titles of buttons
+								    options[0]);
+							if (n == JOptionPane.YES_OPTION) {
+								timer.stop();
+								music.stop();
+								frame.dispose();
+								try {
+									new Game_0(nRows,nCols, lvl,autoModeActive,estrat);
+								} catch (IOException e) {
+									// TODO Auto-generated catch block
+									e.printStackTrace();
+								}
+							}else if(n == JOptionPane.CLOSED_OPTION){
+								this.dispose();
+								System.exit(1);
+							}else{
+								this.dispose();
+								System.exit(1);
+							}
+						}
+		}
+	}
 	
 	//////////////////////////////////////////////////////////////////////////////
 
 	@Override
 	public JSONObject toJSONObject() {
-		// TODO Auto-generated method stub
-		return null;
+		JSONObject jObj = new JSONObject();
+		JSONArray objctsArray = new JSONArray();
+		try {
+			jObj.put(DirectionLabel, currentDirection);
+			jObj.put(SnakeLabel, aSnake.toJSONObject());
+			Iterator<IGameObject> it = objects.iterator();int i = 0;
+			while (it.hasNext()) {
+				objctsArray.put(i, it.next().toJSONObject());i++;
+			}
+			jObj.put(ObjectsLabel, objctsArray);
+			jObj.put(TickLabel, tick);
+			jObj.put(TicksLabel, ticks);
+			jObj.put(AutoLabel, autoModeActive);
+			jObj.put(RowsLabel, nRows);
+			jObj.put(ColsLabel, nCols);
+		} catch (JSONException e) {
+			e.printStackTrace();
+		}
+		return jObj;
 	}
 
 	@Override
@@ -773,13 +927,13 @@ public class Game_0 extends JFrame implements IGame, KeyListener, ActionListener
 	@Override
 	public int getNumberOfRows() {
 		// TODO Auto-generated method stub
-		return 0;
+		return nRows;
 	}
 
 	@Override
 	public int getNumberOfColumns() {
 		// TODO Auto-generated method stub
-		return 0;
+		return nCols;
 	}
 
 	@Override
@@ -797,7 +951,15 @@ public class Game_0 extends JFrame implements IGame, KeyListener, ActionListener
 	@Override
 	public void saveToFile(String directory) {
 		// TODO Auto-generated method stub
-		
+		JSONObject json = toJSONObject();
+		try {
+			Utilidades.escribirEnFichero(json.toString(), "C:/Users/Jorge/Desktop/game.json");
+		} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		this.dispose();
+		System.exit(1);
 	}
 
 	@Override
@@ -811,4 +973,9 @@ public class Game_0 extends JFrame implements IGame, KeyListener, ActionListener
 		// TODO Auto-generated method stub
 		return null;
 	}
+	
+	public static void main(String [] args) throws IOException, JSONException, ParamException{
+        Game_0 gui = new Game_0(15, 15, 3, false, SnakeAutonomous0.BUSCA_FRUTAS_Y_ESQUIVA_OBSTACULOS);
+     }
+
 }

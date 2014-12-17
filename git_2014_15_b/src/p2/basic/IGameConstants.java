@@ -15,6 +15,7 @@ public interface IGameConstants {
     public static final int DownKey = 40;
     public static final int LeftKey = 37;
     public static final int RightKey = 39;
+    public static final int SpaceKey = 32;
     
     // Definition of directions.
     public static final int Up    = 1;

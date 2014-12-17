@@ -3,9 +3,12 @@ package p2.views_impl;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Graphics;
+import java.awt.Image;
 import java.io.IOException;
 import java.util.Hashtable;
 
+import javax.swing.ImageIcon;
+import javax.swing.JLabel;
 import javax.swing.JPanel;
 
 import p2.basic.IGameConstants;
@@ -32,7 +35,7 @@ public class GamePanel extends JPanel  {
 	
 	// Views associated to the different game objects.
 	// the students can add others.
-	IView vObstacle, vLink, vGrape, vBug, vHead;
+	IView vObstacle, vLink, vGrape, vBug, vHead, vBack, vWall;
 
 	/**
 	 * Construct a game panel.
@@ -46,19 +49,22 @@ public class GamePanel extends JPanel  {
     	this.rows = rows;
     	this.edge = edge;
     	
-    	setSize(new Dimension(cols*edge, rows*edge));
+    	setSize(new Dimension(cols*edge+20, rows*edge+20));
     	
     	vObstacle = new VImage("bug", "resources/rock.png");  
     	vGrape = new VImage("food", "resources/cupcake.png");
     	vLink = new VCircle();  
     	vBug  = new VImage("bug", "resources/bug.jpg");  
-    	vHead  = new VImage("head", "resources/snake.png");  
+    	vHead  = new VImage("head", "resources/snake.png"); 
+    	vBack = new VImage("back", "resources/stonefloor2.jpg");
+    	vWall = new VImage("back", "resources/wall.png");
     	
     	tViews.put(IGameConstants.Bug, vBug);
     	tViews.put(IGameConstants.Fruit, vGrape);
     	tViews.put(IGameConstants.Obstacle, vObstacle);
     	tViews.put(IGameConstants.SnakeLink, vLink);
     	tViews.put(IGameConstants.SnakeHead, vHead);
+
     }
 	
 	/**
@@ -68,19 +74,29 @@ public class GamePanel extends JPanel  {
     public void paintComponent(Graphics g){
     	super.paintComponent(g);
     	if (board != null) {
+    		for (int i = 0; i < board.length; i+=2){
+    			for(int j = 0; j < board[i].length; j+=2){
+    				vBack.setSize(2*edge);
+    				vBack.draw(g, (i * edge + edge + 2), (j * edge + edge + 2));
+    			}
+    		}
+    		vWall.setSize(edge*(board.length+2)+6);
+    		vWall.draw(g, 0, 0);
+    	}
+    	if (board != null) {
     		for (int i = 0; i < board.length; i++){
     			for(int j = 0; j < board[i].length; j++){
     				if (board[i][j] != IGameConstants.Free) {
     					IView vi = tViews.get(new Character(board[i][j]));
     					if (vi != null){
-    						vi.setSize(edge-2);
-    						vi.draw(g, (i * edge)+1, (j * edge)+1);
+    						vi.setSize(edge-4);
+    						vi.draw(g, (i * edge + edge + 2)+2, (j * edge + edge + 2)+2);
     					}
     				}
     			}
     		}
     	}
-    	drawGrid(g);
+    	//drawGrid(g);
     }  
     
     /**
@@ -96,7 +112,7 @@ public class GamePanel extends JPanel  {
     // Draw  grid.
     private void drawGrid(Graphics g){
     	Color c = g.getColor();
-    	g.setColor(Color.gray);
+    	g.setColor(Color.GREEN);
     	int w = 0, h = 0;
     	int i = 0;
     	while(i < cols){
