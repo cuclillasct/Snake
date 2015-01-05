@@ -41,7 +41,7 @@ public class TestBD {
 		System.out.println("-------------------------------------------");		
 	}
 	
-	public static Snake testLoadingSnake(String id_juego){
+	public static Snake testLoadingSnake(String id_juego) throws SQLException{
 		Connection conn = Utilidades.connect(connURL);
 		ResultSet rs = Utilidades.getTableFromQuery(conn, 
                            "select * from gusano where id_juego = '" + id_juego + "';");

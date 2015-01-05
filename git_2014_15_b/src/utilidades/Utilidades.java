@@ -63,8 +63,9 @@ public class Utilidades {
 	 * @param connection Conexión a la base de datos
 	 * @param tableName Nombre de la tabla
 	 * @return contenidos de la tabla.
+	 * @throws SQLException 
 	 */
-	public static ResultSet getTable(Connection connection, String tableName){
+	public static ResultSet getTable(Connection connection, String tableName) throws SQLException{
 		return getTableFromQuery(connection, "SELECT * FROM " + tableName);
 	}
 	
@@ -74,8 +75,9 @@ public class Utilidades {
 	 * @param connection Conexión a la base de datos.
 	 * @param query consulta
 	 * @return resultados de la consulta.
+	 * @throws SQLException 
 	 */
-	public static ResultSet getTableFromQuery(Connection connection, String query) {	
+	public static ResultSet getTableFromQuery(Connection connection, String query) throws SQLException {	
 		
 		Statement statement = null;
 		ResultSet resultSet = null;
@@ -88,6 +90,7 @@ public class Utilidades {
 		}
 		catch(SQLException e){
 			e.getMessage();
+			throw e;
 		}
 		return resultSet;
 	}
@@ -107,6 +110,30 @@ public class Utilidades {
 		}
 		
 	}
+	
+	/**
+	 * Inserta datos en una bsade de datos
+	 * @param connection conexión
+	 * @param iqueries array de consultas INSERT
+	 * @throws SQLException
+	 */
+	public static void updateData(Connection connection, String [] iqueries) throws SQLException {
+		if (iqueries != null && iqueries.length > 0) {
+			Statement statement = connection.createStatement();
+			for (int i = 0; i < iqueries.length; i++) {
+				if (iqueries[i] != null) statement.executeUpdate(iqueries[i]);
+			}
+		}
+		
+	}
+	
+	public static void updateData(Connection connection, String iquery) throws SQLException {
+		if (iquery != null) {
+			Statement statement = connection.createStatement();
+			statement.executeUpdate(iquery);
+		}
+	}	
+	
 	
 	/////////////////////////////////////////////////////////////////////////////////////////
 	// BASES DE DATOS. PROCESAMIENTO DEL RESULTADO DE LAS CONSULTAS SELECT.

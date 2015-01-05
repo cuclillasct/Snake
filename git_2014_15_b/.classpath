@@ -2,8 +2,8 @@
 <classpath>
 	<classpathentry kind="src" path="src"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.7"/>
-	<classpathentry kind="lib" path="C:/Users/Jorge/workspace/git_2014_15/userlibs/mysql-connector-java-5.1.13-bin.jar"/>
-	<classpathentry kind="lib" path="C:/Users/Jorge/workspace/git_2014_15/userlibs/org.json-20120521.jar"/>
+	<classpathentry kind="lib" path="D:/Programación/git/Snake/git_2014_15_b/libs/mysql-connector-java-5.1.13-bin.jar"/>
+	<classpathentry kind="lib" path="D:/Programación/git/Snake/git_2014_15_b/libs/org.json-20120521.jar"/>
 	<classpathentry kind="lib" path="libs/jl1.0.1.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

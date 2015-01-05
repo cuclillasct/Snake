@@ -2,6 +2,8 @@ package p1;
 
 import java.sql.Connection;
 import java.sql.ResultSet;
+import java.sql.SQLException;
+
 import utilidades.Teclado;
 import utilidades.Utilidades;
 
@@ -61,7 +63,7 @@ public class Bd0 {
 	}
     
 
-	public static void main(String[] args) {
+	public static void main(String[] args) throws SQLException {
 		
 		// Conexión a la base de datos.
 		connection = Utilidades.connect(connURL);
